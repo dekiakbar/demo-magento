@@ -23,5 +23,8 @@ jobs:
       
       - name: Install Composer Dependencies
         run: |
-          composer install --no-interaction --no-dev -vvv
+          composer install --no-interaction --no-dev
           composer dump-autoload -o
+          
+      - name: Run Unit Test
+        run: ./vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist
