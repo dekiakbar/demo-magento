@@ -14,12 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Add HTTP basic auth credentials
-        run: echo '${{ secrets.MAGENTO_COMPOSER_AUTH }}' > $GITHUB_WORKSPACE/auth.json
-      
-      - name: Install dependencies
-        uses: php-actions/composer@v6
+      - name: Setup PHP with composer
+        uses: shivammathur/setup-php@v2
         with:
-          php_version: "8.1"
-          version: 2.2
-          dev: no
+          php-version: '8.1'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, hash, iconv, intl, json, libxml, mbstring, openssl, pcre, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip, libxml, openssl
+          tools: composer:v2
