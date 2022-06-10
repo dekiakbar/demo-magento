@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Test
-        run: echo Test
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.1"
+          version: 2.2
+          dev: no
