@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+
+# Reset
+Color_Off='\033[0m'
+# Regular Colors
+GREEN='\033[0;32m'
+# Background
+On_Green='\033[42m'
+
+# base dontainer for run command
+DEPLOY_CONTAINER="docker-compose run --rm --no-deps deploy"
+BUILD_CONTAINER="docker-compose run --rm --no-deps build"
+
+function install()
+{
+  echo -e "${On_Green}Installing magento...${Color_Off}"
+  $DEPLOY_CONTAINER rm -rf app/etc/env.php
+  $DEPLOY_CONTAINER rm -rf app/etc/config.php
+  $DEPLOY_CONTAINER magento-command setup:install \
+  --base-url=http://magento2.docker/ \
+  --db-host=db.magento2.docker \
+  --db-name=magento2 \
+  --db-user=magento2 \
+  --db-password=magento2 \
+  --backend-frontname=admin \
+  --admin-firstname=admin \
+  --admin-lastname=admin \
+  --admin-email=admin@admin.com \
+  --admin-user=admin \
+  --admin-password=123123q \
+  --language=en_US \
+  --currency=USD \
+  --timezone=America/Chicago \
+  --use-rewrites=1 \
+  --search-engine=elasticsearch7 \
+  --elasticsearch-host=elasticsearch.magento2.docker \
+  --elasticsearch-port=9200 \
+  --elasticsearch-index-prefix=magento2 \
+  --elasticsearch-timeout=15
+  
+  #set as developer mode (custom)
+  dev-mode
+}
+
+function dev-mode()
+{
+  echo -e "${On_Green}Activating developer mode...${Color_Off}"
+  echo -e "Set magento developer mode"
+  $DEPLOY_CONTAINER magento-command deploy:mode:set developer --skip-compilation
+  echo -e "Set cookie to 1 year"
+  $DEPLOY_CONTAINER magento-command config:set web/cookie/cookie_lifetime 31536000
+  echo -e "Set session to 1 year"
+  $DEPLOY_CONTAINER magento-command config:set admin/security/session_lifetime 31536000
+  echo -e "Enable static symlink"
+  $DEPLOY_CONTAINER magento-command config:set dev/template/allow_symlink 1
+  echo -e "Disable static sign"
+  $DEPLOY_CONTAINER magento-command config:set dev/static/sign 0
+  echo -e "Disable Magento_TwoFactorAuth module"
+  $DEPLOY_CONTAINER magento-command module:disable Magento_TwoFactorAuth
+
+  # magento MTFT purpose
+  echo -e "Disable admin security form key"
+  $DEPLOY_CONTAINER magento-command config:set admin/security/use_form_key 0
+  echo -e "Disable secure in adminhtml"
+  $DEPLOY_CONTAINER magento-command config:set web/secure/use_in_adminhtml 0
+  echo -e "Enable admin account sharring"
+  $DEPLOY_CONTAINER magento-command config:set admin/security/admin_account_sharing 1
+}
+
+function clear-compiled()
+{
+  echo -e "${On_Green}Removing compiled code...${Color_Off}"
+  echo -e "Removing generated/* directory"
+  $BUILD_CONTAINER rm -rf generated/*
+}
+
+function clear-static()
+{
+  echo -e "${On_Green}Clear static content...${Color_Off}"
+  echo -e "Removing var/cache directory"
+  $BUILD_CONTAINER rm -rf var/cache/*
+  echo -e "Removing var/page_cache directory"
+  $BUILD_CONTAINER rm -rf var/page_cache/*
+  echo -e "Removing var/view_preprocessed directory"
+  $BUILD_CONTAINER rm -rf var/view_preprocessed/*
+  echo -e "Removing pub/static directory"
+  $BUILD_CONTAINER rm -rf pub/static/*
+}
+
+function clear-cache()
+{
+  echo -e "${On_Green}Clearing cache...${Color_Off}"
+  $DEPLOY_CONTAINER magento-command cache:flush
+  $DEPLOY_CONTAINER magento-command cache:clean
+}
+
+function fullupgrade ()
+{
+  echo -e "${On_Green}Running fullupgrade...${Color_Off}"
+  echo -e "Running setup:upgrade..."
+  $DEPLOY_CONTAINER magento-command setup:upgrade
+  echo -e "Running setup:di:compile..."
+  $DEPLOY_CONTAINER magento-command setup:di:compile
+  echo -e "Running setup:static-content:deploy..."
+  $DEPLOY_CONTAINER magento-command setup:static-content:deploy -f
+}
+
+function rebuild-container()
+{
+  echo -e "${On_Green}Rebuild all container...${Color_Off}"
+  echo -e "Running docker-compose up --build --force-recreate --no-deps --remove-orphans -d"
+  docker-compose up --build --force-recreate --no-deps --remove-orphans -d
+}
+
+function install-sample-data()
+{
+  echo -e "${On_Green}Installing sample data...${Color_Off}"
+  echo -e "Running bin/magento sampledata:deploy"
+  $DEPLOY_CONTAINER magento-command sampledata:deploy
+  fullupgrade
+}
+
+# start custom script
+set -e
+
+USAGE="Development script
+
+\033[33mCustom command :\033[0m
+  fullupgrade           Run upgrade, compile, and deploy static content.
+  clear-static          Remove static content.
+  clear-compiled        Remove compiled php code.
+  install               Install magento site.
+  dev-mode              Set magento to developer mode.
+  clear-cache           Clear magento cache
+  rebuild-container     Rebuild container image
+  install-sample-data   Install sample data
+  magento-docker        Run bin/magento-docker command. ie: bin/manager magento-docker --help
+  composer              Run composer
+  cs                    Run ./vendor/bin/phpcs command (Coding standard). ie: bin/manager cs --help
+  cbf                   Run ./vendor/bin/phpcbf command (Auto fix Coding standard). ie: bin/manager cbf --help
+  ece-docker            Run ./vendor/bin/ece-docker command. ie: bin/manager ece-docker --help
+
+\033[33mCLI container commands:\033[0m
+  cloud-build           Build the application in production mode, configured by the build hook in the .magento.app.yml file
+  cloud-deploy          Deploy the application, configured by the deploy hook in the .magento.app.yml file
+  cloud-post-deploy     Run post deploy hooks, configured by the post deploy hook in the .magento.app.yml file
+  ece-command           Run ece-tools CLI commands. https://devdocs.magento.com/cloud/reference/ece-tools-reference.html
+  magento-command       Run bin/magento command. ie: bin/manager magento cache:flush
+  mftf-command          Run MFTF command for testing
+  run-cron              Run cron jobs
+\n"
+
+case "$1" in
+  fullupgrade)
+    fullupgrade
+    ;;
+  clear-static)
+    clear-static
+    ;;
+  clear-compiled)
+    clear-compiled
+    ;;
+  install)
+    install
+    ;;
+  dev-mode)
+    dev-mode
+    ;;
+  clear-cache)
+    clear-cache
+    ;;
+  rebuild-container)
+    rebuild-container
+    ;;
+  install-sample-data)
+    install-sample-data
+    ;;
+  magento-docker)
+    bin/magento-docker ${*:2}
+    ;;
+  composer)
+    $BUILD_CONTAINER composer ${*:2}
+    ;;
+  cs)
+    $BUILD_CONTAINER ./vendor/bin/phpcs ${*:2}
+    ;;
+  cbf)
+    $BUILD_CONTAINER ./vendor/bin/phpcbf ${*:2}
+    ;;
+  ece-docker)
+    $BUILD_CONTAINER ./vendor/bin/ece-docker ${*:2}
+    ;;
+  cloud-build)
+    $BUILD_CONTAINER cloud-build ${*:2}
+    ;;
+  cloud-deploy)
+    $DEPLOY_CONTAINER cloud-deploy ${*:2}
+    ;;
+  cloud-post-deploy)
+    $DEPLOY_CONTAINER cloud-post-deploy ${*:2}
+    ;;
+  ece-command)
+    $DEPLOY_CONTAINER ece-command ${*:2}
+    ;;
+  magento-command)
+    $DEPLOY_CONTAINER magento-command ${*:2}
+    ;;
+  mftf-command)
+    $DEPLOY_CONTAINER mftf-command ${*:2}
+    ;;
+  run-cron)
+    docker-compose run --rm --no-deps cron run-cron ${*:2}
+    ;;
+  *)
+    printf "$USAGE"
+    exit 0
+    ;;
+esac
