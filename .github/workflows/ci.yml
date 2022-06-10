@@ -20,3 +20,8 @@ jobs:
           php-version: '8.1'
           extensions: bcmath, ctype, curl, dom, fileinfo, gd, hash, iconv, intl, json, libxml, mbstring, openssl, pcre, pdo_mysql, simplexml, soap, sockets, sodium, tokenizer, xmlwriter, xsl, zip, libxml, openssl
           tools: composer:v2
+      
+      - name: Install Composer Dependencies
+        run: |
+          composer install --no-interaction --no-dev -vvv
+          composer dump-autoload -o
