@@ -23,7 +23,7 @@ jobs:
       
       - name: Install Composer Dependencies
         run: |
-          composer install --no-interaction --no-dev
+          composer install --no-interaction
           composer dump-autoload -o
           
       - name: Run Unit Test
