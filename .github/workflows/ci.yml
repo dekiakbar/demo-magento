@@ -25,6 +25,3 @@ jobs:
         run: |
           composer install --no-interaction
           composer dump-autoload -o
-          
-      - name: Run Unit Test
-        run: ./vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist
