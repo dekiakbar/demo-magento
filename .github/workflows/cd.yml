@@ -19,7 +19,11 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: date
+          USERNAME: ${{ secrets.SSH_USERNAME }}
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          PORT: 22
+          script: |
+            /var/www/magento.nooby.dev/public_html
+            git pull origin master
+            composer install --no-interaction
+            bin/deploy --no-interaction
