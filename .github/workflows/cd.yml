@@ -24,7 +24,7 @@ jobs:
           KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           PORT: 22
           script: |
-            /var/www/magento.nooby.dev/public_html
+            cd /var/www/magento.nooby.dev/public_html
             git pull origin master
             composer install --no-interaction
             bin/deploy --no-interaction
