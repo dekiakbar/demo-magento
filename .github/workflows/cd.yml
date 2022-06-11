@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    environment: VPS Deployments
     runs-on: ubuntu-latest
 
     steps:
