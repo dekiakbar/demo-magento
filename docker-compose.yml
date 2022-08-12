@@ -1,8 +1,8 @@
-# ./vendor/bin/ece-docker 'build:compose' --mode=developer --php='8.1' --db-image=mariadb --db='10.4' --es='7.11' --no-varnish --with-selenium --with-test
+# ./vendor/bin/ece-docker 'build:compose' --no-varnish --es-env-var='ES_JAVA_OPTS=-Xms512m' --es-env-var='ES_JAVA_OPTS=-Xmx512m' --host='magento.nooby.dev'
 version: '2.1'
 services:
   db:
-    hostname: db.magento2.docker
+    hostname: db.magento.nooby.dev
     image: 'mariadb:10.4'
     shm_size: 2gb
     environment:
@@ -14,7 +14,7 @@ services:
       - '3306'
     volumes:
       - '.:/app:delegated'
-      - 'magento244-magento-db:/var/lib/mysql'
+      - 'app-magento-db:/var/lib/mysql'
     healthcheck:
       test: 'mysqladmin ping -h localhost -pmagento2'
       interval: 30s
@@ -23,9 +23,9 @@ services:
     networks:
       magento:
         aliases:
-          - db.magento2.docker
+          - db.magento.nooby.dev
   elasticsearch:
-    hostname: elasticsearch.magento2.docker
+    hostname: elasticsearch.magento.nooby.dev
     image: 'magento/magento-cloud-docker-elasticsearch:7.11-1.3.2'
     ulimits:
       memlock:
@@ -34,13 +34,14 @@ services:
     environment:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ES_JAVA_OPTS=-Xms512m
+      - ES_JAVA_OPTS=-Xmx512m
     networks:
       magento:
         aliases:
-          - elasticsearch.magento2.docker
+          - elasticsearch.magento.nooby.dev
   fpm:
-    hostname: fpm.magento2.docker
+    hostname: fpm.magento.nooby.dev
     image: 'magento/magento-cloud-docker-php:8.1-fpm-1.3.2'
     extends: generic
     volumes:
@@ -48,12 +49,12 @@ services:
     networks:
       magento:
         aliases:
-          - fpm.magento2.docker
+          - fpm.magento.nooby.dev
     depends_on:
       db:
         condition: service_healthy
   web:
-    hostname: web.magento2.docker
+    hostname: web.magento.nooby.dev
     image: 'magento/magento-cloud-docker-nginx:1.19-1.3.2'
     extends: generic
     volumes:
@@ -65,18 +66,18 @@ services:
     networks:
       magento:
         aliases:
-          - web.magento2.docker
+          - web.magento.nooby.dev
     depends_on:
       fpm:
         condition: service_started
   tls:
-    hostname: tls.magento2.docker
+    hostname: tls.magento.nooby.dev
     image: 'magento/magento-cloud-docker-nginx:1.19-1.3.2'
     extends: generic
     networks:
       magento:
         aliases:
-          - magento2.docker
+          - magento.nooby.dev
     environment:
       - NGINX_WORKER_PROCESSES=1
       - NGINX_WORKER_CONNECTIONS=1024
@@ -88,44 +89,15 @@ services:
     depends_on:
       web:
         condition: service_started
-  selenium:
-    hostname: selenium.magento2.docker
-    image: 'selenium/standalone-chrome:latest'
-    ports:
-      - 4444
-    extends: generic
-    shm_size: 2gb
-    networks:
-      magento:
-        aliases:
-          - selenium.magento2.docker
-    depends_on:
-      web:
-        condition: service_started
-  test:
-    hostname: test.magento2.docker
-    image: 'magento/magento-cloud-docker-php:8.1-cli-1.3.2'
-    extends: generic
-    volumes:
-      - '.:/app:delegated'
-    networks:
-      magento:
-        aliases:
-          - test.magento2.docker
-    depends_on:
-      db:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
   generic:
-    hostname: generic.magento2.docker
+    hostname: generic.magento.nooby.dev
     image: 'magento/magento-cloud-docker-php:8.1-cli-1.3.2'
     env_file: ./.docker/config.env
     environment:
       - MAGENTO_RUN_MODE=developer
       - 'PHP_EXTENSIONS=bcmath bz2 calendar exif gd gettext intl mysqli pcntl pdo_mysql soap sockets sysvmsg sysvsem sysvshm opcache zip xsl sodium'
   build:
-    hostname: build.magento2.docker
+    hostname: build.magento.nooby.dev
     image: 'magento/magento-cloud-docker-php:8.1-cli-1.3.2'
     extends: generic
     volumes:
@@ -133,14 +105,14 @@ services:
     networks:
       magento-build:
         aliases:
-          - build.magento2.docker
+          - build.magento.nooby.dev
     depends_on:
       db:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
   deploy:
-    hostname: deploy.magento2.docker
+    hostname: deploy.magento.nooby.dev
     image: 'magento/magento-cloud-docker-php:8.1-cli-1.3.2'
     extends: generic
     volumes:
@@ -148,14 +120,32 @@ services:
     networks:
       magento:
         aliases:
-          - deploy.magento2.docker
+          - deploy.magento.nooby.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+  cron:
+    hostname: cron.magento.nooby.dev
+    image: 'magento/magento-cloud-docker-php:8.1-cli-1.3.2'
+    extends: generic
+    command: run-cron
+    environment:
+      CRONTAB: '* * * * * root cd /app && /usr/local/bin/php bin/magento cron:run >> /app/var/log/cron.log'
+    volumes:
+      - '.:/app:delegated'
+    networks:
+      magento:
+        aliases:
+          - cron.magento.nooby.dev
     depends_on:
       db:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
 volumes:
-  magento244-magento-db: {  }
+  app-magento-db: {  }
 networks:
   magento:
     driver: bridge
