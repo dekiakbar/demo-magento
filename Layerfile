@@ -1,0 +1,14 @@
+
+# Set the Framework (Base Image) for the Virtual Machine
+FROM webapp.io/docker:20.10
+
+# Update
+RUN apt-get update
+
+# This line copies the repository to /root in the runner
+COPY . .
+RUN ls
+
+RUN bin/manager composer install -vvv
+RUN bin/manager rebuild-container
+RUN bin/manager install
