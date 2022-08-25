@@ -21,11 +21,11 @@ return [
         ]
     ])),
     'MAGENTO_CLOUD_ROUTES' => base64_encode(json_encode([
-        'http://magento.nooby.dev/' => [
+        'http://master.magento.nooby.dev/' => [
             'type' => 'upstream',
             'original_url' => 'http://{default}'
         ],
-        'https://magento.nooby.dev/' => [
+        'https://master.magento.nooby.dev/' => [
             'type' => 'upstream',
             'original_url' => 'https://{default}'
         ]
