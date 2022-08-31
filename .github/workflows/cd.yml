@@ -10,7 +10,7 @@ on:
 
 jobs:
   publish:
-    environment: VPS Deployments
+    environment: Staging
     runs-on: ubuntu-latest
 
     steps:
