@@ -19,5 +19,5 @@ jobs:
       - name: Run composer install in docker
         run: bin/manager composer install --no-interaction
       
-      - name: Run composer install in docker
+      - name: Run composer dump autoload
         run: bin/manager composer dump-autoload -o
