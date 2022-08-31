@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
@@ -16,4 +17,4 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Run composer install in docker
-        run: bin/manager composer intall -vvvv
+        run: bin/manager composer install -vvvv
